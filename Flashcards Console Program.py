@@ -16,10 +16,24 @@ def setup_database():
     conn.commit()
     return conn
 
+def view_cards(conn):
+    cursor = conn.execute("SELECT question,answer FROM cards")
+    cards = cursor.fetchall()
+
+    if not cards:
+        print("\n oops! Look like you need to go back and add some cards because we don't have any!")
+        #more foolproofing so that people can't run a study session without cards
+        return
+
+    space = " "
+    print(f"\n{space:>9}PROMPT {space:<4}ANSWER")
+    for question,answer in cards:
+        print(f"{space:>9}{question} {space:<4}{answer}")
+
 def add_cards(conn):
-    print("Let's add a card: ")
-    question = input("Type the prompt here: ")
-    answer = input("Type the answer here: ")
+    print("\n Let's add a card: ")
+    question = input("Type the prompt here: ").strip().lower()
+    answer = input("Type the answer here: ").strip().lower()
 
     if question and answer:
         conn.execute("INSERT INTO cards VALUES (?,?)", (question,answer))
@@ -40,18 +54,25 @@ def study_cards(conn):
         #more foolproofing so that people can't run a study session without cards
         return
 
-    print("/n ----- LET'S STUDY ----- ")
+    print("\n ----- LET'S STUDY ----- ")
     for question,answer in cards:
         print(f"Prompt: {question}")
-        input("(press Enter for answer)")
-        print(f"Answer: {answer}")
-        print("\n Let's study the next; ")
+        study = input("(press Enter or type your answer)").lower().strip()
+        user_pass = ""
+        if study == user_pass:
+            print(f"Answer: {answer}")
+        elif study == answer:
+            print("You got it right!")
+        else:
+            print("Looks like you got it wrong! Let's move on anyway; ")
+
+    print("Out of cards! Exiting Quiz mode...")
 
 def main():
     conn = setup_database()
+    print("\n Welcome to the Flashcard Marker Console Program!")
     while True:
-        print("Welcome to Flashcards Console Program!")
-        print("PRESS 1. Add card")
+        print("\n PRESS 1. Add card")
         print("PRESS 2. Study cards")
         print("PRESS 3. Exit")
 
@@ -59,9 +80,18 @@ def main():
         # strip for precautions and more foolproofing
 
         if choice == "1":
-            add_cards(conn)
+            no_cards = int(input("How many cards would you like to add? "))
+            for i in range(no_cards):
+                add_cards(conn)
         elif choice == "2":
-            study_cards(conn)
+            choice = int(input("View 1: all flashcards or go into 2: Quiz Mode? "))
+            if choice == 1:
+                view_cards(conn)
+            elif choice == 2:
+                study_cards(conn)
+            else:
+                print("Please go back and choose a valid option! ")
+                main()
         elif choice == "3":
             print("Oh well! Goodbye.")
             conn.close()
